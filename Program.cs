@@ -2,12 +2,57 @@
 using System.Net;
 
 string updateHRef = "";
+int maxSecondsWaiting = 10;
+string extractionPath = null;
 
+bool timeInputFlag = false;
+bool pathInputFlag = false;
+bool helpShowFlag = false;
 for (int i = 0; i < args.Length; i++)
 {
     try
     {
-        updateHRef = args[i];
+        if (args[i] == "-t")
+        {
+            timeInputFlag = true;
+            pathInputFlag = false;
+        }
+        else if (args[i] == "-h")
+        {
+            helpShowFlag = true;
+            timeInputFlag = false;
+            pathInputFlag = false;
+        }
+        else if (args[i] == "-p")
+        {
+            pathInputFlag = true;
+            timeInputFlag = false;
+        }
+        else
+        {
+            if (timeInputFlag)
+            {
+                try
+                {
+                    maxSecondsWaiting = int.Parse(args[i]);
+                }
+                catch
+                {
+                    maxSecondsWaiting = 10;
+                }
+            }
+            else if (pathInputFlag)
+            {
+                extractionPath = args[i];
+            }
+            else
+            {
+                updateHRef = args[i];
+            }
+
+            timeInputFlag = false;
+            pathInputFlag = false;
+        }
     }
     catch
     {
@@ -15,13 +60,36 @@ for (int i = 0; i < args.Length; i++)
     }
 }
 
-UpdateHandler.Update(updateHRef);
+if (helpShowFlag)
+{
+    Console.WriteLine($"UniversalUpdater v1.1.0");
+    Console.WriteLine("==========================================");
+    Console.WriteLine("Описание аргументов:");
+    Console.WriteLine("-t [time]         : Максимальное время ожидания процесса разархивации;");
+    Console.WriteLine("-p [path]         : Указать путь до папки, куда необходимо распаковать обновление;");
+    Console.WriteLine("-h                : Вывести справочную ифнормацию по утилите;");
+    Console.WriteLine("[href]            : Адрес нахождения прошивки вводится просто как строка.");
+
+    return;
+}
+
+UpdateHandler.Update(updateHRef, extractionPath, maxSecondsWaiting);
 
 public class UpdateHandler
 {
-    public static void Update(string updateHRef)
+    public static void Update(string updateHRef, string? extractionPath, int maxSecondsWaiting)
     {
-        string pathToUpdateFile = $"{AppDomain.CurrentDomain.BaseDirectory}update.rar";
+        string pathToUpdateFile = "";
+
+        if (extractionPath == null)
+        {
+            pathToUpdateFile = $"{AppDomain.CurrentDomain.BaseDirectory}update.rar";
+        }
+        else
+        {
+            pathToUpdateFile = $"{extractionPath}update.rar";
+        }
+
 
         Console.WriteLine("Загрузка файлов утилиты...");
         try
@@ -66,7 +134,7 @@ public class UpdateHandler
         
         DateTime startTimeMark = DateTime.Now;
 
-        while (!extrectionSuccessFlag && (DateTime.Now - startTimeMark).TotalSeconds < 10)
+        while (!extrectionSuccessFlag && (DateTime.Now - startTimeMark).TotalSeconds < maxSecondsWaiting)
         {
             try
             {
